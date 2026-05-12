@@ -1,0 +1,26 @@
+[
+  {
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hiring Java backend developer"
+      },
+      {
+        "role": "assistant",
+        "content": "What seniority?"
+      },
+      {
+        "role": "user",
+        "content": "Mid-level"
+      },
+      {
+        "role": "assistant",
+        "content": "Need personality assessments too?"
+      },
+      {
+        "role": "user",
+        "content": "Yes teamwork and communication"
+      }
+    ]
+  }
+]
