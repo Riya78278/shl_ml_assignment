@@ -4,26 +4,45 @@ import faiss
 
 from sentence_transformers import SentenceTransformer
 
-# =========================================================
-# LOAD NORMALIZED DATA
-# =========================================================
-with open(
-    "data/normalized_assessments.json",
-    "r",
-    encoding="utf-8"
-) as f:
+embed_model = None
+index = None
+DATA = None
 
-    DATA = json.load(f)
+def initialize_retriever():
 
-print(f"Loaded {len(DATA)} normalized assessments.")
+    global embed_model
+    global index
+    global DATA
 
-# =========================================================
-# LOAD EMBEDDING MODEL
-# =========================================================
-embed_model = SentenceTransformer(
-    "all-MiniLM-L6-v2",
-    device="cpu"
-)
+    import json
+    import faiss
+
+    from sentence_transformers import SentenceTransformer
+
+    print("Loading normalized data...")
+
+    with open(
+        "data/normalized_assessments.json",
+        "r",
+        encoding="utf-8"
+    ) as f:
+
+        DATA = json.load(f)
+
+    print("Loading embedding model...")
+
+    embed_model = SentenceTransformer(
+        "all-MiniLM-L6-v2",
+        device="cpu"
+    )
+
+    print("Loading FAISS index...")
+
+    index = faiss.read_index(
+        "data/faiss.index"
+    )
+
+    print("Retriever initialized.")
 
 # =========================================================
 # CLEAN FUNCTION
@@ -61,14 +80,6 @@ for item in DATA:
     )
 
     texts.append(combined)
-
-print("Loading FAISS index...")
-
-index = faiss.read_index(
-    "data/faiss.index"
-)
-
-print("FAISS index loaded.")
 
 # =========================================================
 # HELPERS
