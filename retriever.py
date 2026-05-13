@@ -2,25 +2,31 @@ import json
 import numpy as np
 import faiss
 
-from sentence_transformers import SentenceTransformer
-
+# =========================================================
+# GLOBALS
+# =========================================================
 embed_model = None
 index = None
 DATA = None
+initialized = False
 
 def initialize_retriever():
 
     global embed_model
     global index
     global DATA
+    global initialized
 
-    import json
-    import faiss
+    if initialized:
+        return
+
+    print("Initializing retriever...")
 
     from sentence_transformers import SentenceTransformer
 
-    print("Loading normalized data...")
-
+    # -----------------------------------------------------
+    # LOAD DATA
+    # -----------------------------------------------------
     with open(
         "data/normalized_assessments.json",
         "r",
@@ -29,21 +35,31 @@ def initialize_retriever():
 
         DATA = json.load(f)
 
-    print("Loading embedding model...")
+    print(f"Loaded {len(DATA)} assessments.")
 
+    # -----------------------------------------------------
+    # LOAD MODEL
+    # -----------------------------------------------------
     embed_model = SentenceTransformer(
         "all-MiniLM-L6-v2",
         device="cpu"
     )
 
-    print("Loading FAISS index...")
+    print("Embedding model loaded.")
 
+    # -----------------------------------------------------
+    # LOAD FAISS
+    # -----------------------------------------------------
     index = faiss.read_index(
         "data/faiss.index"
     )
 
-    print("Retriever initialized.")
+    print("FAISS loaded.")
 
+    initialized = True
+
+    print("Retriever initialized.")
+    
 # =========================================================
 # CLEAN FUNCTION
 # =========================================================
@@ -156,7 +172,10 @@ def classify_result(text):
 # SEARCH
 # =========================================================
 def search(query, k=30):
-
+    
+    if not initialized:
+        initialize_retriever()
+    
     print("\n=================================================")
     print("SEARCH QUERY:")
     print(query)
