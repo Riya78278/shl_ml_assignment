@@ -1,26 +1,52 @@
 from fastapi import FastAPI
-from semantic_rag import initialize_system
+from pydantic import BaseModel
 
+from semantic_rag import generate_response
+
+# =========================================================
+# FASTAPI
+# =========================================================
 app = FastAPI()
 
 # =========================================================
-# STARTUP
+# REQUEST MODEL
 # =========================================================
-@app.on_event("startup")
-async def startup_event():
+class Message(BaseModel):
+    role: str
+    content: str
 
-    print("Initializing AI system...")
 
-    initialize_system()
-
-    print("AI system ready.")
+class ChatRequest(BaseModel):
+    messages: List[Message]
 
 # =========================================================
 # ROOT
 # =========================================================
 @app.get("/")
-def home():
+def root():
 
     return {
-        "status": "working"
+        "message": "SHL Recommendation API running"
     }
+
+# =========================================================
+# HEALTH
+# =========================================================
+@app.get("/health")
+def health():
+
+    return {
+        "status": "healthy"
+    }
+
+# =========================================================
+# CHAT
+# =========================================================
+@app.post("/chat")
+def chat(req: ChatRequest):
+
+    messages = [m.dict() for m in req.messages]
+
+    response = generate_response(messages)
+
+    return response
