@@ -8,7 +8,7 @@ import httpx  # Swapped requests for async httpx
 # API SETUP
 # =========================================================
 HF_TOKEN = os.getenv("HF_TOKEN")
-API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
+API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
 HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
 # =========================================================
