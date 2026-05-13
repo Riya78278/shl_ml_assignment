@@ -3,13 +3,13 @@ from pydantic import BaseModel
 from typing import List
 
 try:
-    from semantic_rag import generate_response
-    # Add this import here!
-    from retriever import initialize_retriever 
+    from semantic_rag import generate_response 
     print("semantic_rag imported")
 except Exception as e:
     print("IMPORT ERROR:", e)
     raise e
+
+import threading
 
 # =========================================================
 # FASTAPI
@@ -17,13 +17,18 @@ except Exception as e:
 app = FastAPI()
 
 # =========================================================
-# STARTUP EVENT (The Fix!)
+# STARTUP EVENT
 # =========================================================
 @app.on_event("startup")
 def startup_event():
-    print("Waking up AI models... This might take a couple of minutes on the Free Tier.")
-    initialize_retriever()
-    print("Models successfully loaded into memory. Ready for traffic!")
+    print("Opening port immediately for Render...")
+    from retriever import initialize_retriever
+    
+    # Spin off the heavy 3-minute load into a background thread
+    load_thread = threading.Thread(target=initialize_retriever)
+    load_thread.start()
+    
+    print("Background load started! Server is ready to accept health checks.")
     
 # =========================================================
 # REQUEST MODEL
