@@ -27,6 +27,8 @@ def health():
     return {"status": "healthy"}
 
 @app.post("/chat")
-def chat(req: ChatRequest):
+async def chat(req: ChatRequest):
     messages = [m.dict() for m in req.messages]
-    return generate_response(messages)
+    # Await the response since the core logic is now async
+    response = await generate_response(messages)
+    return response
