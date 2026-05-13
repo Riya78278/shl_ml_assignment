@@ -3,15 +3,12 @@ from pydantic import BaseModel
 from typing import List
 
 try:
-
     from semantic_rag import generate_response
-
+    # Add this import here!
+    from retriever import initialize_retriever 
     print("semantic_rag imported")
-
 except Exception as e:
-
     print("IMPORT ERROR:", e)
-
     raise e
 
 # =========================================================
@@ -19,6 +16,15 @@ except Exception as e:
 # =========================================================
 app = FastAPI()
 
+# =========================================================
+# STARTUP EVENT (The Fix!)
+# =========================================================
+@app.on_event("startup")
+def startup_event():
+    print("Waking up AI models... This might take a couple of minutes on the Free Tier.")
+    initialize_retriever()
+    print("Models successfully loaded into memory. Ready for traffic!")
+    
 # =========================================================
 # REQUEST MODEL
 # =========================================================
