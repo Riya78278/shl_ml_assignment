@@ -10,6 +10,9 @@ index = None
 DATA = None
 initialized = False
 
+# =========================================================
+# INITIALIZE RETRIEVER (LAZY LOADING)
+# =========================================================
 def initialize_retriever():
 
     global embed_model
@@ -38,7 +41,7 @@ def initialize_retriever():
     print(f"Loaded {len(DATA)} assessments.")
 
     # -----------------------------------------------------
-    # LOAD MODEL
+    # LOAD EMBEDDING MODEL
     # -----------------------------------------------------
     embed_model = SentenceTransformer(
         "all-MiniLM-L6-v2",
@@ -48,18 +51,18 @@ def initialize_retriever():
     print("Embedding model loaded.")
 
     # -----------------------------------------------------
-    # LOAD FAISS
+    # LOAD FAISS INDEX
     # -----------------------------------------------------
     index = faiss.read_index(
         "data/faiss.index"
     )
 
-    print("FAISS loaded.")
+    print("FAISS index loaded.")
 
     initialized = True
 
-    print("Retriever initialized.")
-    
+    print("Retriever initialized successfully.")
+
 # =========================================================
 # CLEAN FUNCTION
 # =========================================================
@@ -79,26 +82,7 @@ def clean(text):
     )
 
 # =========================================================
-# PREPARE TEXTS
-# =========================================================
-texts = []
-
-for item in DATA:
-
-    combined = (
-        item.get("name", "")
-        + " "
-        + clean(item.get("description", ""))[:400]
-        + " "
-        + item.get("test_type", "")
-        + " "
-        + " ".join(item.get("keys", []))
-    )
-
-    texts.append(combined)
-
-# =========================================================
-# HELPERS
+# HELPER TERMS
 # =========================================================
 TECH_TERMS = [
     "java",
@@ -172,10 +156,15 @@ def classify_result(text):
 # SEARCH
 # =========================================================
 def search(query, k=30):
-    
+
+    global initialized
+
+    # -----------------------------------------------------
+    # LAZY INITIALIZATION
+    # -----------------------------------------------------
     if not initialized:
         initialize_retriever()
-    
+
     print("\n=================================================")
     print("SEARCH QUERY:")
     print(query)
@@ -186,16 +175,24 @@ def search(query, k=30):
     # =====================================================
     # EMBED QUERY
     # =====================================================
-    query_vec = embed_model.encode([query]).astype("float32")
+    query_vec = embed_model.encode(
+        [query]
+    ).astype("float32")
 
-    distances, indices = index.search(query_vec, k)
+    distances, indices = index.search(
+        query_vec,
+        k
+    )
 
     raw_results = []
 
     # =====================================================
     # BUILD RAW RESULTS
     # =====================================================
-    for distance, idx in zip(distances[0], indices[0]):
+    for distance, idx in zip(
+        distances[0],
+        indices[0]
+    ):
 
         item = DATA[idx]
 
@@ -207,13 +204,35 @@ def search(query, k=30):
             continue
 
         raw_results.append({
-            "name": item.get("name", "Unknown"),
+
+            "name": item.get(
+                "name",
+                "Unknown"
+            ),
+
             "description": description,
-            "url": item.get("url", ""),
-            "test_type": item.get("test_type", "Unknown"),
+
+            "url": item.get(
+                "url",
+                ""
+            ),
+
+            "test_type": item.get(
+                "test_type",
+                "Unknown"
+            ),
+
             "semantic_distance": float(distance),
-            "keys": item.get("keys", []),
-            "job_levels": item.get("job_levels", [])
+
+            "keys": item.get(
+                "keys",
+                []
+            ),
+
+            "job_levels": item.get(
+                "job_levels",
+                []
+            )
         })
 
     print("=== RAW RETRIEVAL RESULTS ===")
@@ -227,7 +246,7 @@ def search(query, k=30):
     scored_results = []
 
     for r in raw_results:
-        
+
         score = 0
 
         text = (
@@ -239,8 +258,12 @@ def search(query, k=30):
             + " "
             + " ".join(r.get("keys", []))
         ).lower()
-        
+
+        # -------------------------------------------------
+        # FILTER BAD RESULTS
+        # -------------------------------------------------
         excluded_terms = [
+
             "hiring concepts",
             "profiling guide",
             "development report",
@@ -254,7 +277,10 @@ def search(query, k=30):
             "interview guide"
         ]
 
-        if any(term in text for term in excluded_terms):
+        if any(
+            term in text
+            for term in excluded_terms
+        ):
             continue
 
         # -------------------------------------------------
@@ -282,10 +308,13 @@ def search(query, k=30):
 
             if any(
                 level.lower() == "mid-professional"
-                for level in r.get("job_levels", [])
+                for level in r.get(
+                    "job_levels",
+                    []
+                )
             ):
                 score += 5
-        
+
         # -------------------------------------------------
         # PERSONALITY BOOSTS
         # -------------------------------------------------
@@ -353,13 +382,19 @@ def search(query, k=30):
         # -------------------------------------------------
         # ASSESSMENT BOOST
         # -------------------------------------------------
-        if any(term in text for term in ASSESSMENT_TERMS):
+        if any(
+            term in text
+            for term in ASSESSMENT_TERMS
+        ):
             score += 4
 
         # -------------------------------------------------
         # REPORT PENALTY
         # -------------------------------------------------
-        if any(term in text for term in REPORT_TERMS):
+        if any(
+            term in text
+            for term in REPORT_TERMS
+        ):
             score -= 6
 
         # -------------------------------------------------
@@ -373,8 +408,16 @@ def search(query, k=30):
         final_score = score + semantic_bonus
 
         scored_results.append({
-            "score": round(final_score, 2),
-            "category": classify_result(text),
+
+            "score": round(
+                final_score,
+                2
+            ),
+
+            "category": classify_result(
+                text
+            ),
+
             "result": r
         })
 
@@ -399,16 +442,24 @@ def search(query, k=30):
         category = item["category"]
 
         if category == "technical":
-            technical.append(item["result"])
+            technical.append(
+                item["result"]
+            )
 
         elif category == "personality":
-            personality.append(item["result"])
+            personality.append(
+                item["result"]
+            )
 
         elif category == "cognitive":
-            cognitive.append(item["result"])
+            cognitive.append(
+                item["result"]
+            )
 
         else:
-            other.append(item["result"])
+            other.append(
+                item["result"]
+            )
 
     final_results = []
 
@@ -416,13 +467,19 @@ def search(query, k=30):
     # ENSURE DIVERSITY
     # -----------------------------------------------------
     if technical:
-        final_results.append(technical[0])
+        final_results.append(
+            technical[0]
+        )
 
     if personality:
-        final_results.append(personality[0])
+        final_results.append(
+            personality[0]
+        )
 
     if cognitive:
-        final_results.append(cognitive[0])
+        final_results.append(
+            cognitive[0]
+        )
 
     # -----------------------------------------------------
     # FILL REMAINING
@@ -437,7 +494,9 @@ def search(query, k=30):
     seen = set()
 
     for r in final_results:
-        seen.add(r["name"].lower())
+        seen.add(
+            r["name"].lower()
+        )
 
     for r in combined:
 
