@@ -1,8 +1,8 @@
 fastapi
 uvicorn
-numpy
-faiss-cpu
-sentence-transformers
-google-genai
-python-dotenv
 pydantic
+requests
+faiss-cpu
+python-dotenv
+google-genai
+numpy
