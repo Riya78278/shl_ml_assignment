@@ -1,7 +1,18 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from typing import List
 
-from semantic_rag import generate_response
+try:
+
+    from semantic_rag import generate_response
+
+    print("semantic_rag imported")
+
+except Exception as e:
+
+    print("IMPORT ERROR:", e)
+
+    raise e
 
 # =========================================================
 # FASTAPI
