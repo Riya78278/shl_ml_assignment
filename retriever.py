@@ -12,6 +12,7 @@ embed_model = None
 index = None
 DATA = None
 initialized = False
+model_lock = threading.Lock()
 
 # =========================================================
 # INITIALIZE RETRIEVER (LAZY LOADING)
@@ -23,48 +24,49 @@ def initialize_retriever():
     global DATA
     global initialized
 
-    if initialized:
-        return
-
-    print("Initializing retriever...")
-
-    from sentence_transformers import SentenceTransformer
-
-    # -----------------------------------------------------
-    # LOAD DATA
-    # -----------------------------------------------------
-    with open(
-        "data/normalized_assessments.json",
-        "r",
-        encoding="utf-8"
-    ) as f:
-
-        DATA = json.load(f)
-
-    print(f"Loaded {len(DATA)} assessments.")
-
-    # -----------------------------------------------------
-    # LOAD EMBEDDING MODEL
-    # -----------------------------------------------------
-    embed_model = SentenceTransformer(
-        "all-MiniLM-L6-v2",
-        device="cpu"
-    )
-
-    print("Embedding model loaded.")
-
-    # -----------------------------------------------------
-    # LOAD FAISS INDEX
-    # -----------------------------------------------------
-    index = faiss.read_index(
-        "data/faiss.index"
-    )
-
-    print("FAISS index loaded.")
-
-    initialized = True
-
-    print("Retriever initialized successfully.")
+    with model_lock:
+        if initialized:
+            return
+    
+        print("Initializing retriever...")
+    
+        from sentence_transformers import SentenceTransformer
+    
+        # -----------------------------------------------------
+        # LOAD DATA
+        # -----------------------------------------------------
+        with open(
+            "data/normalized_assessments.json",
+            "r",
+            encoding="utf-8"
+        ) as f:
+    
+            DATA = json.load(f)
+    
+        print(f"Loaded {len(DATA)} assessments.")
+    
+        # -----------------------------------------------------
+        # LOAD EMBEDDING MODEL
+        # -----------------------------------------------------
+        embed_model = SentenceTransformer(
+            "all-MiniLM-L6-v2",
+            device="cpu"
+        )
+    
+        print("Embedding model loaded.")
+    
+        # -----------------------------------------------------
+        # LOAD FAISS INDEX
+        # -----------------------------------------------------
+        index = faiss.read_index(
+            "data/faiss.index"
+        )
+    
+        print("FAISS index loaded.")
+    
+        initialized = True
+    
+        print("Retriever initialized successfully.")
 
 # =========================================================
 # CLEAN FUNCTION
