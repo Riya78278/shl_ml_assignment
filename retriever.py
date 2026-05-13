@@ -2,71 +2,58 @@ import os
 import json
 import numpy as np
 import faiss
+import requests
 
-os.environ['HF_HOME'] = './hf_cache'
+# =========================================================
+# API SETUP
+# =========================================================
+HF_TOKEN = os.getenv("HF_TOKEN")
+API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
+HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
 # =========================================================
 # GLOBALS
 # =========================================================
-embed_model = None
 index = None
 DATA = None
 initialized = False
-model_lock = threading.Lock()
 
 # =========================================================
-# INITIALIZE RETRIEVER (LAZY LOADING)
+# GET EMBEDDING FROM API
+# =========================================================
+def get_embedding(text):
+    # Send the text to Hugging Face instead of processing locally
+    response = requests.post(API_URL, headers=HEADERS, json={"inputs": text})
+    
+    if response.status_code != 200:
+        raise Exception(f"Hugging Face API Error: {response.text}")
+        
+    # The API returns a list of floats. FAISS needs a 2D numpy array.
+    embedding = response.json()
+    return np.array([embedding]).astype("float32")
+
+# =========================================================
+# INITIALIZE RETRIEVER (Ultra Fast Now)
 # =========================================================
 def initialize_retriever():
-
-    global embed_model
     global index
     global DATA
     global initialized
 
-    with model_lock:
-        if initialized:
-            return
-    
-        print("Initializing retriever...")
-    
-        from sentence_transformers import SentenceTransformer
-    
-        # -----------------------------------------------------
-        # LOAD DATA
-        # -----------------------------------------------------
-        with open(
-            "data/normalized_assessments.json",
-            "r",
-            encoding="utf-8"
-        ) as f:
-    
-            DATA = json.load(f)
-    
-        print(f"Loaded {len(DATA)} assessments.")
-    
-        # -----------------------------------------------------
-        # LOAD EMBEDDING MODEL
-        # -----------------------------------------------------
-        embed_model = SentenceTransformer(
-            "all-MiniLM-L6-v2",
-            device="cpu"
-        )
-    
-        print("Embedding model loaded.")
-    
-        # -----------------------------------------------------
-        # LOAD FAISS INDEX
-        # -----------------------------------------------------
-        index = faiss.read_index(
-            "data/faiss.index"
-        )
-    
-        print("FAISS index loaded.")
-    
-        initialized = True
-    
-        print("Retriever initialized successfully.")
+    if initialized:
+        return
+
+    print("Initializing retriever (API Mode)...")
+
+    # Load JSON
+    with open("data/normalized_assessments.json", "r", encoding="utf-8") as f:
+        DATA = json.load(f)
+
+    # Load FAISS
+    index = faiss.read_index("data/faiss.index")
+
+    initialized = True
+    print("Retriever initialized! (No local model loaded, saving ~200MB RAM)")
 
 # =========================================================
 # CLEAN FUNCTION
@@ -164,9 +151,6 @@ def search(query, k=30):
 
     global initialized
 
-    # -----------------------------------------------------
-    # LAZY INITIALIZATION
-    # -----------------------------------------------------
     if not initialized:
         initialize_retriever()
 
@@ -178,16 +162,18 @@ def search(query, k=30):
     query_lower = query.lower()
 
     # =====================================================
-    # EMBED QUERY
+    # EMBED QUERY VIA API (Replaced the local model here)
     # =====================================================
-    query_vec = embed_model.encode(
-        [query]
-    ).astype("float32")
+    try:
+        query_vec = get_embedding(query)
+    except Exception as e:
+        print("Embedding failed, returning empty results:", e)
+        return []
 
-    distances, indices = index.search(
-        query_vec,
-        k
-    )
+    # =====================================================
+    # FAISS SEARCH
+    # =====================================================
+    distances, indices = index.search(query_vec, k)
 
     raw_results = []
 
