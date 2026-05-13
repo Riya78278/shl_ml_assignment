@@ -29,10 +29,20 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 # =========================================================
 async def generate_gemini_response(prompt):
     models_to_try = [
+        # 1. The new king of speed & high API limits (Generally Available as of May 2026)
         "gemini-3.1-flash-lite",
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-flash"
+        
+        # 2. The stable workhorse (Incredible price/performance and massive rate limits)
+        "gemini-2.5-flash",
+        
+        # 3. The proven, stable lite fallback
+        "gemini-2.5-flash-lite",
+        
+        # 4. If all Flash servers are somehow overloaded, bump up to the Pro tier preview
+        "gemini-3.1-pro-preview",
+        
+        # 5. The absolute last-resort stable flagship
+        "gemini-2.5-pro"
     ]
 
     max_retries = 2
