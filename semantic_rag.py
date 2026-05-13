@@ -14,21 +14,6 @@ from retriever import search
 from prompts import build_prompt
 import time
 
-retriever_initialized = False
-
-def initialize_system():
-
-    global retriever_initialized
-
-    if retriever_initialized:
-        return
-
-    from retriever import initialize_retriever
-
-    initialize_retriever()
-
-    retriever_initialized = True
-
 # =========================================================
 # GEMINI RESPONSE WITH RETRIES
 # =========================================================
